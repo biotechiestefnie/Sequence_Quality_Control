@@ -1,0 +1,84 @@
+# Sequence Quality Control Assessment with FastQC
+
+date: Spe 22, 2025
+author: Stefanie Moreno
+
+## Objective:
+
+The purpose of this project is to demonstrate a quality control assessment of NGS reads 
+with FastQC, Trimmomatic,. 
+
+## Background:
+
+After reads are sequenced by NGS technologies,the data is returned in a FastQ 
+file, which contains both the sequences and the quality information. Similar to FASTA, the 
+FASTQ file begins with a header line, but the FASTQ header is denoted by 
+an @ symbol. For a single record (sequence read), there are four lines, each of which is 
+described below:
+
+Line	Description
+
+1	Always begins with ‘@’, followed by information about the read
+
+2	The actual DNA sequence
+
+3	Always begins with a ‘+’, and sometimes the same info as in line 1
+
+4	Has a string of characters representing the quality scores; must have the same number of 
+    characters as line 2. Line 4 has characters encoding the quality of each nucleotide in the
+    read.
+
+The legend below provides the mapping of quality scores (Phred-33) to the quality encoding 
+characters. Different quality encoding scales exist (differing by offset in the ASCII table), 
+but note the most commonly used one is fastqsanger, which is the scale output by Illumina since 
+mid-2011.
+
+    Quality encoding:  !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHI
+                       |         |         |         |         |
+        Quality score: 0........10........20........30........40           
+
+Each quality score represents the probability that the corresponding nucleotide call is 
+incorrect. This quality score is logarithmic-based and is calculated as:
+
+    Q = -10 x log10(P), where P is the probability that a base call is erroneous
+
+These probability values are the results from the base calling algorithm and dependent on how
+much signal was captured for the base incorporation. The score values can be interpreted as 
+follows:
+
+    Phred Quality Score	| Probability of incorrect base call  |	 Base call accuracy
+
+        10      	                1 in 10	                        90%
+
+        20	                        1 in 100	                    99%
+
+        30	                        1 in 1000	                    99.9%
+
+        40	                        1 in 10,000	                    99.99%
+
+FastQC provides a simple way to do some quality checks on raw sequence data coming from 
+high-throughput sequencing pipelines. It provides a modular set of analyses, which can be
+used to obtain an impression of whether the data has any problems that should be addressed
+before moving on to the next analysis. 
+
+FastQC:
+
+* Accepts FASTQ files (or BAM files) as input.
+* Generates summary graphs and tables to help assess your data.
+* Generates an easy-to-view HTML-based report with the graphs and tables.
+
+## Steps of the Project:
+
+To begin, I set up and activated a new micromamba environment in my terminal called bioinfo. 
+I then accessed and downloaded the pre-compiled, raw FASTQ files for the E. coli dataset 
+SRR25083113 directly from the European Nucleotide Archive (ENA). All commands used in the 
+terminal can be found in the project file "bash_commands.sh". After the downloads were
+completed, I accessed the FastQC platform.
+
+Prior to transferring to the FastQC platform, I navigated into my home folder and unzipped
+the two FastQ files. I then transitioned to the FAstQC platform and opened the first file.
+Because of the size of the files, it took some time to process. Upon completing, I saved
+each report as an html file.
+
+
+
