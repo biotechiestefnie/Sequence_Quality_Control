@@ -1,0 +1,7 @@
+sample: SRR25083113
+
+threads: 4
+
+reference_name: ecoli_k12
+
+reference_url: REPLACE_WITH_REFERENCE_FASTA_URL

@@ -5,8 +5,8 @@ author: Stefanie Moreno
 
 ## Objective:
 
-The purpose of this project is to demonstrate a quality control assessment of NGS reads 
-with FastQC, Trimmomatic,. 
+The purpose of this project is to demonstrate a quality control assessment of WGS reads 
+with FastQC, Trimmomatic, Samtools, BWA, . 
 
 ## Background:
 
@@ -80,5 +80,12 @@ the two FastQ files. I then transitioned to the FAstQC platform and opened the f
 Because of the size of the files, it took some time to process. Upon completing, I saved
 each report as an html file.
 
+## FastQC Plot Interpretations:
 
+Within the FastQC report, a summary of all of the modules is given on the left-hand side. Modules with a green check represent data of sufficient quality. Red or yellow are not necessarily bad, but rather, they indicate modules that should be checked.
 
+The first module gives the basic statistics for the sample. Generally, it is a good idea to keep track of the total number of reads sequenced for each sample and to make sure the read length and %GC content are as expected.
+
+**Basic Statistics**
+
+![Basic Statistics](plots/basic_statistics.png)
