@@ -3,23 +3,20 @@
 # stop execution on failure
 set -euo pipefail
 
-# start runtime counter to documentation at terminal
+# start runtime counter
 start_time=$SECONDS
 
-# step 1: activate vitual env with necessary tools
-# print environment activation update
-echo "[info] activating bioinfo environment"
-#
+# print status to terminal
+echo "[info] Activating bioinfo Environment"
+# activate environment with micromamba
 eval "$(micromamba shell hook --shell bash)"
-# activate virtual env with needed tools
 micromamba activate bioinfo
-# check if bbmap present in env
-
-# install bbmap into bioinfo env for decon
 
 # create runtime directories
 mkdir -p data
 mkdir -p references
+mkdir -p logs
+mkdir -p benchmarks
 
 # parse config values
 sample=$(grep "accession:" config/config.yaml | awk '{print $2}')
@@ -27,66 +24,79 @@ reference_name=$(grep "reference_name:" config/config.yaml | awk '{print $2}')
 reference_url=$(grep "reference_url:" config/config.yaml | awk '{print $2}')
 threads=$(grep "threads:" config/config.yaml | awk '{print $2}')
 
-# print run id to terminal
-echo "[info] sample: ${sample}"
+# print sample name to terminal
+echo "[info] Sample: ${sample}"
 
-# step 2: retrieve & unpack sample files
-# check that fwd fastq not already present
+# download reads rule
+# check if unzipped read files already present
 if [ ! -f "data/${sample}_1.fastq" ]; then
-    # print update for downloading paired-end run files
-    echo "[info] downloading paired-end reads"
-    # retrieve fwd read file
+    # print update to terminal
+    echo "[info] Downloading Forward Reads"
+    # extract gzipped fwd reads file
     wget -P data \
     ftp://ftp.sra.ebi.ac.uk/vol1/fastq/${sample:0:6}/013/${sample}/${sample}_1.fastq.gz
-    # retrieve rvs read file
+    # print update to terminal
+    echo "[info] Downloading Reverse Reads"
+    # extract gzipped rvs reads file
     wget -P data \
     ftp://ftp.sra.ebi.ac.uk/vol1/fastq/${sample:0:6}/013/${sample}/${sample}_2.fastq.gz
-
-    # unpack gzipped fastq fwd/rvs paired end run files
+    # unzip fwd & rvs read files
     gunzip data/${sample}_1.fastq.gz
     gunzip data/${sample}_2.fastq.gz
 
+else
+    # print update to terminal
+    echo "[info] Skipping: Reads Already Present"
+
 fi
 
-# step 3: retrieve corresponding reference genome
-# ensure reference not already present
+# download reference genome rule
+# check if reference genome already present
 if [ ! -f "references/${reference_name}.fa" ]; then
-    # print reference extraction update to terminal
-    echo "[info] downloading reference genome"
-    # pull reference genome
+    # print update to terminal
+    echo "[info] Downloading Reference Genome"
+    # retrieve reference genome
     wget -qO- "${reference_url}" | gunzip > references/${reference_name}.fa
 
+else
+    # print reference genome already present to terminal
+    echo "[info] Reference Already Present"
+
 fi
 
-# step 4: generate index for reference genome
-# check that index doesnt already exist
+# bwa index for reference genome rule
+# check that index not present
 if [ ! -f "references/${reference_name}.fa.bwt" ]; then
-    # print bwa index update to terminal
-    echo "[info] building bwa index"
-    # build bwa index
+    # print index building status to terminal
+    echo "[info] Building BWA Index"
+    # build bwa index for reference
     bwa index references/${reference_name}.fa
 
+else
+    # print already present to terminal
+    echo "[info] Skipping: BWA Index Already Present"
+
 fi
 
-# step 5: perform dry run to check file system before execution
-# print dry run update to terminal
-echo "[info] Running Snakemake Dry Run"
-# validate snakemake workflow with dry run
+# print dry run execution status to terminal
+echo "[info] Running Dry Run"
+# validate workflow
 snakemake -n
 
-# step 6: run project workflow
-# print execution initiation update to threshold
+# print execution status update to terminal
 echo "[info] Executing Workflow"
-# execute quality control/alignment workflow
-snakemake --cores ${threads}
+# execute workflow
+snakemake \
+    --cores ${threads} \
+    --printshellcmds
 
-# calculate workflow runtime for output to terminal
+# calculate runtime
 duration=$((SECONDS-start_time))
-
+# convert to min/sec
 minutes=$((duration/60))
 seconds=$((duration%60))
 
-# print workflow completion status update to terminal
+# print completion status update to terminal
 echo "Pipeline Completed Successfully"
-echo "Runtime: ${minutes}m ${seconds}s"  # print workflow runtime
-echo "Multiqc Report: results/multiqc/multiqc_report.html"  # print dashboard location
+echo "Runtime: ${minutes}m ${seconds}s"
+echo "Multiqc Report: results/multiqc/multiqc_report.html"

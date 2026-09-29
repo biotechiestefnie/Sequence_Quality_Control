@@ -1,7 +1,9 @@
-sample: SRR25083113
+sample:
+
+  accession: SRR25083113
+
+  reference_name: ecoli_k12
+
+  reference_url: https://replace_with_reference_url.fna.gz
 
 threads: 4
-
-reference_name: ecoli_k12
-
-reference_url: REPLACE_WITH_REFERENCE_FASTA_URL
