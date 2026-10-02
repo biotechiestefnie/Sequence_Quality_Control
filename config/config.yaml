@@ -1,9 +1,21 @@
+# dynamic arguments for portability
 sample:
+  accession: "SRR25083113"
+  format: "fastq"
+  paired_end: true
+  genome_name: "ecoli_k12"
+  genome_url: "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/005/845/GCF_000005845.2_ASM584v2/GCF_000005845.2_ASM584v2_genomic.fna.gz"
 
-  accession: SRR25083113
 
-  reference_name: ecoli_k12
+trimming:
+  adapter_type: "TruSeq3-PE"
+  adapter_url: "https://raw.githubusercontent.com/usadellab/Trimmomatic/main/adapters/TruSeq3-PE.fa"
 
-  reference_url: https://replace_with_reference_url.fna.gz
 
-threads: 4
+contamination:
+  # bbduk built-in reference keyword
+  # examples: phix, lambda, adapters, artifacts
+  spike_ins: "phix"
+
+# set according to local os specs
+threads: 10

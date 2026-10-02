@@ -141,7 +141,7 @@ dependencies:
   - perl-alien-libxml2=0.17=pl5321h7f84b70_1
   - perl-archive-tar=3.04=pl5321hdfd78af_0
   - perl-business-isbn=3.007=pl5321hd8ed1ab_0
-  - perl-business-isbn-data=20210112.006=pl5321hd8ed1ab_0
+  - perl-business-isbn-raw=20210112.006=pl5321hd8ed1ab_0
   - perl-capture-tiny=0.48=pl5321h694c41f_1
   - perl-carp=1.50=pl5321hd8ed1ab_0
   - perl-common-sense=3.75=pl5321hd8ed1ab_0
@@ -330,7 +330,7 @@ dependencies:
     - rfc3987-syntax==1.1.0
     - rpds-py==0.30.0
     - soupsieve==2.8.3
-    - stack-data==0.6.3
+    - stack-raw==0.6.3
     - tabulate==0.10.0
     - terminado==0.18.1
     - tinycss2==1.4.0
@@ -345,5 +345,3 @@ dependencies:
     - webcolors==25.10.0
     - webencodings==0.5.1
     - websocket-client==1.9.0
-
-

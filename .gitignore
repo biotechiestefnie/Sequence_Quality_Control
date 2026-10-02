@@ -1,0 +1,27 @@
+# raw sequencing data
+raw/
+
+# reference genomes and indexes
+resources/ref_genome/
+
+# workflow outputs
+results/
+
+# snakemake
+.snakemake/
+
+# logs
+logs/
+
+# benchmarks
+benchmarks/
+
+# macOS
+.DS_Store
+
+# python
+__pycache__/
+*.pyc
+
+# environments
+.venv/

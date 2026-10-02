@@ -1,102 +1,97 @@
 #!/bin/bash
 
-# stop execution on failure
+# stop execution on failure or unspecified variables
 set -euo pipefail
 
 # start runtime counter
 start_time=$SECONDS
 
-# print status to terminal
-echo "[info] Activating bioinfo Environment"
-# activate environment with micromamba
-eval "$(micromamba shell hook --shell bash)"
-micromamba activate bioinfo
+# create project subdirectories if not present
+mkdir -p "raw"
+mkdir -p "resources/ref_genome"
+mkdir -p "resources/adapters"
+mkdir -p "logs"
+mkdir -p "benchmarks"
 
-# create runtime directories
-mkdir -p data
-mkdir -p references
-mkdir -p logs
-mkdir -p benchmarks
+# configuration lookups for params
+sample=$(python3 -c "import yaml; print(yaml.safe_load(open('config/config.yaml'))['sample']['accession'])")
+genome_name=$(python3 -c "import yaml; print(yaml.safe_load(open('config/config.yaml'))['sample']['genome_name'])")
+genome_url=$(python3 -c "import yaml; print(yaml.safe_load(open('config/config.yaml'))['sample']['genome_url'])")
+adapter_type=$(python3 -c "import yaml; print(yaml.safe_load(open('config/config.yaml'))['trimming']['adapter_type'])")
+adapter_url=$(python3 -c "import yaml; print(yaml.safe_load(open('config/config.yaml'))['trimming']['adapter_url'])")
+threads=$(python3 -c "import yaml; print(yaml.safe_load(open('config/config.yaml'))['threads'])")
 
-# parse config values
-sample=$(grep "accession:" config/config.yaml | awk '{print $2}')
-reference_name=$(grep "reference_name:" config/config.yaml | awk '{print $2}')
-reference_url=$(grep "reference_url:" config/config.yaml | awk '{print $2}')
-threads=$(grep "threads:" config/config.yaml | awk '{print $2}')
+# specify run accession
+echo "[info] Target Dataset: ${sample}"
 
-# print sample name to terminal
-echo "[info] Sample: ${sample}"
+# retrieve paired-end sequencing reads
+if [ -f "raw/${sample}_1.fastq.gz" ] && [ -f "raw/${sample}_2.fastq.gz" ]; then
+    echo "[info] Skipping: Compressed FASTQ Files Already Present"
 
-# download reads rule
-# check if unzipped read files already present
-if [ ! -f "data/${sample}_1.fastq" ]; then
-    # print update to terminal
-    echo "[info] Downloading Forward Reads"
-    # extract gzipped fwd reads file
-    wget -P data \
-    ftp://ftp.sra.ebi.ac.uk/vol1/fastq/${sample:0:6}/013/${sample}/${sample}_1.fastq.gz
-    # print update to terminal
-    echo "[info] Downloading Reverse Reads"
-    # extract gzipped rvs reads file
-    wget -P data \
-    ftp://ftp.sra.ebi.ac.uk/vol1/fastq/${sample:0:6}/013/${sample}/${sample}_2.fastq.gz
-    # unzip fwd & rvs read files
-    gunzip data/${sample}_1.fastq.gz
-    gunzip data/${sample}_2.fastq.gz
+elif [ -f "raw/${sample}_1.fastq" ] && [ -f "raw/${sample}_2.fastq" ]; then
+    echo "[info] Compressing Existing FASTQ Files..."
+    gzip "raw/${sample}_1.fastq"
+    gzip "raw/${sample}_2.fastq"
 
 else
-    # print update to terminal
-    echo "[info] Skipping: Reads Already Present"
+    echo "[info] Downloading Forward Reads..."
+    wget -qP "raw" \
+        "ftp://ftp.sra.ebi.ac.uk/vol1/fastq/${sample:0:6}/013/${sample}/${sample}_1.fastq.gz"
 
+    echo "[info] Downloading Reverse Reads..."
+    wget -qP "raw" \
+        "ftp://ftp.sra.ebi.ac.uk/vol1/fastq/${sample:0:6}/013/${sample}/${sample}_2.fastq.gz"
 fi
 
-# download reference genome rule
-# check if reference genome already present
-if [ ! -f "references/${reference_name}.fa" ]; then
-    # print update to terminal
-    echo "[info] Downloading Reference Genome"
-    # retrieve reference genome
-    wget -qO- "${reference_url}" | gunzip > references/${reference_name}.fa
+# retrieve reference genome for alignment
+if [ -f "resources/ref_genome/${genome_name}.fa" ]; then
+    echo "[info] Skipping: Reference Genome Already Present"
+
+elif [ -f "resources/ref_genome/${genome_name}.fa.gz" ]; then
+    echo "[info] Decompressing Existing Reference Genome..."
+    gunzip -k "resources/ref_genome/${genome_name}.fa.gz"
 
 else
-    # print reference genome already present to terminal
-    echo "[info] Reference Already Present"
-
+    echo "[info] Downloading Reference Genome..."
+    wget -qO- "${genome_url}" | gunzip \
+        > "resources/ref_genome/${genome_name}.fa"
 fi
 
-# bwa index for reference genome rule
-# check that index not present
-if [ ! -f "references/${reference_name}.fa.bwt" ]; then
-    # print index building status to terminal
-    echo "[info] Building BWA Index"
-    # build bwa index for reference
-    bwa index references/${reference_name}.fa
+# download sequence adapters according to NGS run for trimming
+if [ ! -f "resources/adapters/${adapter_type}.fa" ]; then
+    echo "[info] Downloading ${adapter_type} Adapter Fasta..."
+    wget -qO "resources/adapters/${adapter_type}.fa" "${adapter_url}"
 
 else
-    # print already present to terminal
+    echo "[info] Adapter Fasta File Already Present"
+fi
+
+# build bwa index for ref genome if absent
+if [ ! -f "resources/ref_genome/${genome_name}.fa.bwt" ]; then
+    echo "[info] Building BWA Index..."
+    bwa index "resources/ref_genome/${genome_name}.fa" 2>/dev/null
+
+else
     echo "[info] Skipping: BWA Index Already Present"
-
 fi
 
-# print dry run execution status to terminal
-echo "[info] Running Dry Run"
-# validate workflow
-snakemake -n
+# dry run to confirm workflow integrity
+echo "[info] Running Validation Dry Run..."
+snakemake -n --rerun-incomplete
 
-# print execution status update to terminal
-echo "[info] Executing Workflow"
-# execute workflow
+# execute qc & alignment workflow
+echo "[info] Executing Live Multi-Core Workflow..."
 snakemake \
-    --cores ${threads} \
-    --printshellcmds
+    --cores "${threads}" \
+    --printshellcmds \
+    --rerun-incomplete
 
-# calculate runtime
+# calculate total runtime
 duration=$((SECONDS-start_time))
-# convert to min/sec
 minutes=$((duration/60))
 seconds=$((duration%60))
 
-# print completion status update to terminal
-echo "Pipeline Completed Successfully"
-echo "Runtime: ${minutes}m ${seconds}s"
-echo "Multiqc Report: results/multiqc/multiqc_report.html"
+# completion status, total runtime, dashboard location to terminal
+echo "Pipeline Completed Successfully!"
+echo "TOTAL WORKFLOW RUNTIME: ${minutes}m ${seconds}s"
+echo "MultiQC Dashboard Located In 'deliverables/' Folder/"
